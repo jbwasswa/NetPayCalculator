@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -377,7 +378,7 @@ private fun PayrollSettingsCard(
 private fun SectionCard(
     title: String,
     subtitle: String,
-    content: @Composable Column.() -> Unit
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -408,7 +409,6 @@ private fun MoneyField(
         onValueChange = { onValueChange(it.filter { char -> char.isDigit() || char == ',' || char == '.' }) },
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label) },
-        prefix = { Text("UGX") },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
