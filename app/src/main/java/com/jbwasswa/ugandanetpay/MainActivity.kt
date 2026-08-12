@@ -96,6 +96,7 @@ private fun NetPayCalculatorScreen() {
     var includeNssf by rememberSaveable { mutableStateOf(true) }
     var taxYear by rememberSaveable { mutableStateOf(TaxYear.Fy2026_27.name) }
     var residency by rememberSaveable { mutableStateOf(Residency.Resident.name) }
+    var showBreakdown by rememberSaveable { mutableStateOf(false) }
 
     val selectedMode = CalculatorMode.valueOf(mode)
     val selectedTaxYear = TaxYear.valueOf(taxYear)
@@ -126,35 +127,39 @@ private fun NetPayCalculatorScreen() {
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Header(selectedTaxYear, selectedResidency)
-        ModeSelector(selectedMode) { mode = it.name }
-        ResultHero(selectedMode, result, netToGross)
-        QuickStats(result)
-        IncomeCard(
-            mode = selectedMode,
-            amountText = amountText,
-            onAmountChange = { amountText = it },
-            allowancesText = allowancesText,
-            onAllowancesChange = { allowancesText = it },
-            reimbursementsText = reimbursementsText,
-            onReimbursementsChange = { reimbursementsText = it },
-            deductionsText = deductionsText,
-            onDeductionsChange = { deductionsText = it }
-        )
-        PayrollSettingsCard(
-            includeNssf = includeNssf,
-            onIncludeNssfChange = { includeNssf = it },
-            taxYear = selectedTaxYear,
-            onTaxYearChange = { taxYear = it.name },
-            residency = selectedResidency,
-            onResidencyChange = { residency = it.name }
-        )
-        Breakdown(result)
-        Text(
-            text = "Estimate only. Confirm official payroll treatment with URA, your employer, or a tax adviser.",
-            color = Muted,
-            fontSize = 12.sp,
-            lineHeight = 16.sp
-        )
+        if (showBreakdown) {
+            BreakdownScreen(result = result, onBack = { showBreakdown = false })
+        } else {
+            ModeSelector(selectedMode) { mode = it.name }
+            IncomeCard(
+                mode = selectedMode,
+                amountText = amountText,
+                onAmountChange = { amountText = it },
+                allowancesText = allowancesText,
+                onAllowancesChange = { allowancesText = it },
+                reimbursementsText = reimbursementsText,
+                onReimbursementsChange = { reimbursementsText = it },
+                deductionsText = deductionsText,
+                onDeductionsChange = { deductionsText = it }
+            )
+            PayrollSettingsCard(
+                includeNssf = includeNssf,
+                onIncludeNssfChange = { includeNssf = it },
+                taxYear = selectedTaxYear,
+                onTaxYearChange = { taxYear = it.name },
+                residency = selectedResidency,
+                onResidencyChange = { residency = it.name }
+            )
+            ResultHero(selectedMode, result, netToGross)
+            QuickStats(result)
+            DetailsButton { showBreakdown = true }
+            Text(
+                text = "Estimate only. Confirm official payroll treatment with URA, your employer, or a tax adviser.",
+                color = Muted,
+                fontSize = 12.sp,
+                lineHeight = 16.sp
+            )
+        }
     }
 }
 
@@ -324,15 +329,27 @@ private fun IncomeCard(
     deductionsText: String,
     onDeductionsChange: (String) -> Unit
 ) {
-    SectionCard(title = "Income details", subtitle = "Separate taxable allowances from reimbursements.") {
+    SectionCard(title = "Income details", subtitle = "Taxable allowances affect PAYE and NSSF.") {
         MoneyField(
             label = if (mode == CalculatorMode.GrossToNet) "Basic / gross salary" else "Desired take-home pay",
             value = amountText,
             onValueChange = onAmountChange
         )
-        MoneyField("Taxable allowances", allowancesText, onAllowancesChange)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MoneyField(
+                label = "Taxable allowances",
+                value = allowancesText,
+                onValueChange = onAllowancesChange,
+                modifier = Modifier.weight(1f)
+            )
+            MoneyField(
+                label = "Other deductions",
+                value = deductionsText,
+                onValueChange = onDeductionsChange,
+                modifier = Modifier.weight(1f)
+            )
+        }
         MoneyField("Non-taxable reimbursements", reimbursementsText, onReimbursementsChange)
-        MoneyField("Other deductions", deductionsText, onDeductionsChange)
     }
 }
 
@@ -402,12 +419,13 @@ private fun SectionCard(
 private fun MoneyField(
     label: String,
     value: String,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = { onValueChange(it.filter { char -> char.isDigit() || char == ',' || char == '.' }) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -460,7 +478,29 @@ private fun OptionButton(
 }
 
 @Composable
-private fun Breakdown(result: SalaryResult) {
+private fun DetailsButton(onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(
+            text = "View calculation details",
+            color = Forest,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun BreakdownScreen(result: SalaryResult, onBack: () -> Unit) {
+    OutlinedButton(
+        onClick = onBack,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text("Back to calculator", color = Forest, fontWeight = FontWeight.Bold)
+    }
     SectionCard(title = "Calculation breakdown", subtitle = "How the take-home figure is derived.") {
         BreakdownGroup(
             title = "Income",
