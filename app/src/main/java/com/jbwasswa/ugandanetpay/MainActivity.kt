@@ -409,7 +409,7 @@ private fun MoneyField(
         )
         Text(
             text = value.formatInputMoney(),
-            color = MutedText,
+            color = Muted,
             fontSize = 11.sp,
             modifier = Modifier.padding(start = 4.dp, top = 3.dp)
         )
