@@ -133,7 +133,7 @@ private fun NetPayCalculatorScreen() {
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Header(selectedTaxYear, selectedResidency)
+        Header()
         if (showBreakdown) {
             BreakdownScreen(result = result, onBack = { showBreakdown = false })
         } else {
@@ -180,21 +180,13 @@ private fun NetPayCalculatorScreen() {
 }
 
 @Composable
-private fun Header(taxYear: TaxYear, residency: Residency) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Uganda Net Pay",
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold,
-            color = ForestDark
-        )
-        Text(
-            text = "Ugandan PAYE and NSSF salary calculator",
-            color = Muted,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
+private fun Header() {
+    Text(
+        text = "Uganda Net Pay",
+        fontSize = 30.sp,
+        fontWeight = FontWeight.Bold,
+        color = ForestDark
+    )
 }
 
 @Composable
@@ -598,6 +590,7 @@ private fun BreakdownScreen(result: SalaryResult, onBack: () -> Unit) {
             rows = listOf(
                 "Net pay" to result.netPay.formatUgx(),
                 "Employer NSSF" to result.employerNssf.formatUgx(),
+                "Total NSSF" to (result.employeeNssf + result.employerNssf).formatUgx(),
                 "Effective PAYE rate" to "${(result.effectiveTaxRate * 100).formatPercent()}%",
                 "Take-home rate" to "${(result.takeHomeRate * 100).formatPercent()}%"
             ),
