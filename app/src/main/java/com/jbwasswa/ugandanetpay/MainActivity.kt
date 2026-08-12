@@ -161,15 +161,13 @@ private fun NetPayCalculatorScreen() {
                 deductionsText = deductionsText,
                 onDeductionsChange = { deductionsText = it }
             )
-            ResultHero(selectedMode, result, netToGross)
-            QuickStats(result)
-            DetailsButton { showBreakdown = true }
-            Text(
-                text = "Estimate only. Confirm official payroll treatment with URA, your employer, or a tax adviser.",
-                color = Muted,
-                fontSize = 12.sp,
-                lineHeight = 16.sp
+            ResultHero(
+                mode = selectedMode,
+                result = result,
+                reverseResult = netToGross,
+                onClick = { showBreakdown = true }
             )
+            QuickStats(result)
         }
     }
 }
@@ -244,12 +242,16 @@ private fun SegmentButton(
 private fun ResultHero(
     mode: CalculatorMode,
     result: SalaryResult,
-    reverseResult: GrossFromNetResult
+    reverseResult: GrossFromNetResult,
+    onClick: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Forest),
         shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -273,12 +275,18 @@ private fun ResultHero(
             )
             Text(
                 text = if (mode == CalculatorMode.GrossToNet) {
-                    "From ${result.cashEarnings.formatUgx()} Cash Earnings"
+                    "From ${result.cashEarnings.formatUgx()} Total Earnings"
                 } else {
                     "To Land At ${reverseResult.targetNetPay.formatUgx()} Net Pay"
                 },
                 color = Color(0xFFCFEADF),
                 fontSize = 13.sp
+            )
+            Text(
+                text = "Tap To View Details",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -324,20 +332,16 @@ private fun IncomeCard(
             value = amountText,
             onValueChange = onAmountChange
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MoneyField(
-                label = "Taxable Allowances",
-                value = allowancesText,
-                onValueChange = onAllowancesChange,
-                modifier = Modifier.weight(1f)
-            )
-            MoneyField(
-                label = "Other Deductions",
-                value = deductionsText,
-                onValueChange = onDeductionsChange,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        MoneyField(
+            label = "Taxable Allowances",
+            value = allowancesText,
+            onValueChange = onAllowancesChange
+        )
+        MoneyField(
+            label = "Other Deductions",
+            value = deductionsText,
+            onValueChange = onDeductionsChange
+        )
         MoneyField(
             label = "Non-Taxable Reimbursements",
             value = reimbursementsText,
@@ -508,21 +512,6 @@ private fun OptionButton(
 }
 
 @Composable
-private fun DetailsButton(onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Text(
-            text = "View Calculation Details",
-            color = Forest,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
 private fun BreakdownScreen(result: SalaryResult, onBack: () -> Unit) {
     OutlinedButton(
         onClick = onBack,
@@ -538,7 +527,7 @@ private fun BreakdownScreen(result: SalaryResult, onBack: () -> Unit) {
                 "Gross Salary" to result.grossPay.formatUgx(),
                 "Taxable Allowances" to result.taxableAllowances.formatUgx(),
                 "Non-Taxable Reimbursements" to result.nonTaxableReimbursements.formatUgx(),
-                "Cash Earnings" to result.cashEarnings.formatUgx()
+                "Total Earnings" to result.cashEarnings.formatUgx()
             )
         )
         BreakdownGroup(
