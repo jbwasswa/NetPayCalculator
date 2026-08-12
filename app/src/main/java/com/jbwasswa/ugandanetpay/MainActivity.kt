@@ -24,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
@@ -36,8 +37,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jbwasswa.ugandanetpay.domain.GrossFromNetResult
@@ -250,7 +255,7 @@ private fun ResultHero(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = if (mode == CalculatorMode.GrossToNet) "Estimated Net Pay" else "Gross salary required",
+                text = if (mode == CalculatorMode.GrossToNet) "Estimated Net Pay" else "Gross Salary Required",
                 color = Color(0xFFCFEADF),
                 fontWeight = FontWeight.SemiBold
             )
@@ -267,9 +272,9 @@ private fun ResultHero(
             )
             Text(
                 text = if (mode == CalculatorMode.GrossToNet) {
-                    "From ${result.cashEarnings.formatUgx()} cash earnings"
+                    "From ${result.cashEarnings.formatUgx()} Cash Earnings"
                 } else {
-                    "To land at ${reverseResult.targetNetPay.formatUgx()} net pay"
+                    "To Land At ${reverseResult.targetNetPay.formatUgx()} Net Pay"
                 },
                 color = Color(0xFFCFEADF),
                 fontSize = 13.sp
@@ -314,26 +319,26 @@ private fun IncomeCard(
 ) {
     SectionCard {
         MoneyField(
-            label = if (mode == CalculatorMode.GrossToNet) "Basic / gross salary" else "Desired take-home pay",
+            label = if (mode == CalculatorMode.GrossToNet) "Gross Salary" else "Desired Take-Home Pay",
             value = amountText,
             onValueChange = onAmountChange
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MoneyField(
-                label = "Taxable allowances",
+                label = "Taxable Allowances",
                 value = allowancesText,
                 onValueChange = onAllowancesChange,
                 modifier = Modifier.weight(1f)
             )
             MoneyField(
-                label = "Other deductions",
+                label = "Other Deductions",
                 value = deductionsText,
                 onValueChange = onDeductionsChange,
                 modifier = Modifier.weight(1f)
             )
         }
         MoneyField(
-            label = "Non-taxable reimbursements",
+            label = "Non-Taxable Reimbursements",
             value = reimbursementsText,
             onValueChange = onReimbursementsChange
         )
@@ -352,13 +357,13 @@ private fun PayrollSettingsCard(
     SectionCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Deduct employee NSSF", fontWeight = FontWeight.SemiBold, color = Ink)
-                Text("5% of taxable/contributable wage", color = Muted, fontSize = 12.sp)
+                Text("Deduct Employee NSSF", fontWeight = FontWeight.SemiBold, color = Ink)
+                Text("5% of Taxable/Contributable Wage", color = Muted, fontSize = 12.sp)
             }
             Switch(checked = includeNssf, onCheckedChange = onIncludeNssfChange)
         }
         ChoiceRow(
-            title = "PAYE rules",
+            title = "PAYE Rules",
             firstText = TaxYear.Fy2026_27.label,
             firstSelected = taxYear == TaxYear.Fy2026_27,
             onFirst = { onTaxYearChange(TaxYear.Fy2026_27) },
@@ -367,11 +372,11 @@ private fun PayrollSettingsCard(
             onSecond = { onTaxYearChange(TaxYear.Fy2025_26) }
         )
         ChoiceRow(
-            title = "Tax residency",
+            title = "Tax Residency",
             firstText = "Resident",
             firstSelected = residency == Residency.Resident,
             onFirst = { onResidencyChange(Residency.Resident) },
-            secondText = "Non-resident",
+            secondText = "Non-Resident",
             secondSelected = residency == Residency.NonResident,
             onSecond = { onResidencyChange(Residency.NonResident) }
         )
@@ -410,16 +415,35 @@ private fun MoneyField(
             modifier = Modifier.fillMaxWidth(),
             label = { Text(label) },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            visualTransformation = ThousandsSeparatorTransformation,
+            trailingIcon = {
+                if (value.isNotBlank()) {
+                    IconButton(onClick = { onValueChange("") }) {
+                        Text("X", color = Muted, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         )
-        if (value.isNotBlank()) {
-            Text(
-                text = value.formatInputMoney(),
-                color = Muted,
-                fontSize = 11.sp,
-                modifier = Modifier.padding(start = 4.dp, top = 3.dp)
-            )
+    }
+}
+
+private object ThousandsSeparatorTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val raw = text.text
+        val formatted = raw.formatWithThousandsSeparators()
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                val safeOffset = offset.coerceIn(0, raw.length)
+                return raw.take(safeOffset).formatWithThousandsSeparators().length
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                val safeOffset = offset.coerceIn(0, formatted.length)
+                return formatted.take(safeOffset).count { it.isDigit() }.coerceIn(0, raw.length)
+            }
         }
+        return TransformedText(AnnotatedString(formatted), offsetMapping)
     }
 }
 
@@ -476,7 +500,7 @@ private fun DetailsButton(onClick: () -> Unit) {
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            text = "View calculation details",
+            text = "View Calculation Details",
             color = Forest,
             fontWeight = FontWeight.Bold
         )
@@ -496,30 +520,30 @@ private fun BreakdownScreen(result: SalaryResult, onBack: () -> Unit) {
         BreakdownGroup(
             title = "Income",
             rows = listOf(
-                "Basic / gross salary" to result.grossPay.formatUgx(),
-                "Taxable allowances" to result.taxableAllowances.formatUgx(),
-                "Non-taxable reimbursements" to result.nonTaxableReimbursements.formatUgx(),
-                "Cash earnings" to result.cashEarnings.formatUgx()
+                "Gross Salary" to result.grossPay.formatUgx(),
+                "Taxable Allowances" to result.taxableAllowances.formatUgx(),
+                "Non-Taxable Reimbursements" to result.nonTaxableReimbursements.formatUgx(),
+                "Cash Earnings" to result.cashEarnings.formatUgx()
             )
         )
         BreakdownGroup(
-            title = "Tax and deductions",
+            title = "Tax And Deductions",
             rows = listOf(
-                "Taxable income" to result.taxableIncome.formatUgx(),
-                "NSSF contribution base" to result.nssfContributionBase.formatUgx(),
+                "Taxable Income" to result.taxableIncome.formatUgx(),
+                "NSSF Contribution Base" to result.nssfContributionBase.formatUgx(),
                 "PAYE" to result.paye.formatUgx(),
                 "Employee NSSF" to result.employeeNssf.formatUgx(),
-                "Other deductions" to result.otherDeductions.formatUgx()
+                "Other Deductions" to result.otherDeductions.formatUgx()
             )
         )
         BreakdownGroup(
             title = "Final",
             rows = listOf(
-                "Net pay" to result.netPay.formatUgx(),
+                "Net Pay" to result.netPay.formatUgx(),
                 "Employer NSSF" to result.employerNssf.formatUgx(),
                 "Total NSSF" to (result.employeeNssf + result.employerNssf).formatUgx(),
-                "Effective PAYE rate" to "${(result.effectiveTaxRate * 100).formatPercent()}%",
-                "Take-home rate" to "${(result.takeHomeRate * 100).formatPercent()}%"
+                "Effective PAYE Rate" to "${(result.effectiveTaxRate * 100).formatPercent()}%",
+                "Take-Home Rate" to "${(result.takeHomeRate * 100).formatPercent()}%"
             ),
             strongLast = false
         )
@@ -564,13 +588,13 @@ private fun String.moneyValue(): Double {
     return filter { it.isDigit() }.toDoubleOrNull() ?: 0.0
 }
 
-private fun String.formatInputMoney(): String {
-    val number = filter { it.isDigit() }.toLongOrNull() ?: 0L
-    return number.formatUgx()
-}
-
 private fun String.digitsOnly(): String {
     return filter { it.isDigit() }.trimStart('0')
+}
+
+private fun String.formatWithThousandsSeparators(): String {
+    if (isBlank()) return ""
+    return reversed().chunked(3).joinToString(",").reversed()
 }
 
 private fun Double.formatPercent(): String {
