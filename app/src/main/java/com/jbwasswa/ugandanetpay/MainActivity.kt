@@ -2,6 +2,7 @@ package com.jbwasswa.ugandanetpay
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -89,10 +90,10 @@ private fun UgandaNetPayTheme(content: @Composable () -> Unit) {
 private fun NetPayCalculatorScreen() {
     val calculator = remember { SalaryCalculator() }
     var mode by rememberSaveable { mutableStateOf(CalculatorMode.GrossToNet.name) }
-    var amountText by rememberSaveable { mutableStateOf("2000000") }
-    var allowancesText by rememberSaveable { mutableStateOf("0") }
-    var reimbursementsText by rememberSaveable { mutableStateOf("0") }
-    var deductionsText by rememberSaveable { mutableStateOf("0") }
+    var amountText by rememberSaveable { mutableStateOf("") }
+    var allowancesText by rememberSaveable { mutableStateOf("") }
+    var reimbursementsText by rememberSaveable { mutableStateOf("") }
+    var deductionsText by rememberSaveable { mutableStateOf("") }
     var includeNssf by rememberSaveable { mutableStateOf(true) }
     var taxYear by rememberSaveable { mutableStateOf(TaxYear.Fy2026_27.name) }
     var residency by rememberSaveable { mutableStateOf(Residency.Resident.name) }
@@ -117,6 +118,10 @@ private fun NetPayCalculatorScreen() {
     val grossToNet = calculator.calculateGrossToNet(template)
     val netToGross = calculator.calculateGrossFromNet(amount, template)
     val result = if (selectedMode == CalculatorMode.GrossToNet) grossToNet else netToGross.salaryResult
+
+    BackHandler(enabled = showBreakdown) {
+        showBreakdown = false
+    }
 
     Column(
         modifier = Modifier
@@ -405,14 +410,16 @@ private fun MoneyField(
             modifier = Modifier.fillMaxWidth(),
             label = { Text(label) },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
         )
-        Text(
-            text = value.formatInputMoney(),
-            color = Muted,
-            fontSize = 11.sp,
-            modifier = Modifier.padding(start = 4.dp, top = 3.dp)
-        )
+        if (value.isNotBlank()) {
+            Text(
+                text = value.formatInputMoney(),
+                color = Muted,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(start = 4.dp, top = 3.dp)
+            )
+        }
     }
 }
 
