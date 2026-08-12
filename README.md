@@ -29,3 +29,13 @@ From the project root:
 ```
 
 The current machine did not expose a global Gradle command or Android SDK path during scaffolding, so build verification still needs Android tooling.
+
+## Download APK From GitHub
+
+Every push to `main` runs the **Build Debug APK** workflow.
+
+1. Open the repository on GitHub.
+2. Go to **Actions**.
+3. Open the latest **Build Debug APK** run.
+4. Download the artifact named **NetPayCalculator-debug-apk**.
+5. Unzip it and install `app-debug.apk` on your Android phone.
