@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,12 +15,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jbwasswa.ugandanetpay.domain.GrossFromNetResult
@@ -55,13 +57,6 @@ private val SoftBlue = Color(0xFFEAF3FB)
 private enum class CalculatorMode {
     GrossToNet,
     NetToGross
-}
-
-private enum class MoneyFieldTarget {
-    Amount,
-    Allowances,
-    Reimbursements,
-    Deductions
 }
 
 class MainActivity : ComponentActivity() {
@@ -102,7 +97,6 @@ private fun NetPayCalculatorScreen() {
     var taxYear by rememberSaveable { mutableStateOf(TaxYear.Fy2026_27.name) }
     var residency by rememberSaveable { mutableStateOf(Residency.Resident.name) }
     var showBreakdown by rememberSaveable { mutableStateOf(false) }
-    var activeMoneyField by rememberSaveable { mutableStateOf(MoneyFieldTarget.Amount.name) }
 
     val selectedMode = CalculatorMode.valueOf(mode)
     val selectedTaxYear = TaxYear.valueOf(taxYear)
@@ -123,7 +117,6 @@ private fun NetPayCalculatorScreen() {
     val grossToNet = calculator.calculateGrossToNet(template)
     val netToGross = calculator.calculateGrossFromNet(amount, template)
     val result = if (selectedMode == CalculatorMode.GrossToNet) grossToNet else netToGross.salaryResult
-    val selectedMoneyField = MoneyFieldTarget.valueOf(activeMoneyField)
 
     Column(
         modifier = Modifier
@@ -138,26 +131,6 @@ private fun NetPayCalculatorScreen() {
             BreakdownScreen(result = result, onBack = { showBreakdown = false })
         } else {
             ModeSelector(selectedMode) { mode = it.name }
-            IncomeCard(
-                mode = selectedMode,
-                activeField = selectedMoneyField,
-                amountText = amountText,
-                allowancesText = allowancesText,
-                reimbursementsText = reimbursementsText,
-                deductionsText = deductionsText,
-                onFieldSelected = { activeMoneyField = it.name }
-            )
-            PinKeypad(
-                activeField = selectedMoneyField,
-                onKey = { key ->
-                    when (selectedMoneyField) {
-                        MoneyFieldTarget.Amount -> amountText = updateMoneyDigits(amountText, key)
-                        MoneyFieldTarget.Allowances -> allowancesText = updateMoneyDigits(allowancesText, key)
-                        MoneyFieldTarget.Reimbursements -> reimbursementsText = updateMoneyDigits(reimbursementsText, key)
-                        MoneyFieldTarget.Deductions -> deductionsText = updateMoneyDigits(deductionsText, key)
-                    }
-                }
-            )
             PayrollSettingsCard(
                 includeNssf = includeNssf,
                 onIncludeNssfChange = { includeNssf = it },
@@ -165,6 +138,17 @@ private fun NetPayCalculatorScreen() {
                 onTaxYearChange = { taxYear = it.name },
                 residency = selectedResidency,
                 onResidencyChange = { residency = it.name }
+            )
+            IncomeCard(
+                mode = selectedMode,
+                amountText = amountText,
+                onAmountChange = { amountText = it },
+                allowancesText = allowancesText,
+                onAllowancesChange = { allowancesText = it },
+                reimbursementsText = reimbursementsText,
+                onReimbursementsChange = { reimbursementsText = it },
+                deductionsText = deductionsText,
+                onDeductionsChange = { deductionsText = it }
             )
             ResultHero(selectedMode, result, netToGross)
             QuickStats(result)
@@ -314,41 +298,39 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
 @Composable
 private fun IncomeCard(
     mode: CalculatorMode,
-    activeField: MoneyFieldTarget,
     amountText: String,
+    onAmountChange: (String) -> Unit,
     allowancesText: String,
+    onAllowancesChange: (String) -> Unit,
     reimbursementsText: String,
+    onReimbursementsChange: (String) -> Unit,
     deductionsText: String,
-    onFieldSelected: (MoneyFieldTarget) -> Unit
+    onDeductionsChange: (String) -> Unit
 ) {
     SectionCard {
-        MoneyInputTile(
+        MoneyField(
             label = if (mode == CalculatorMode.GrossToNet) "Basic / gross salary" else "Desired take-home pay",
             value = amountText,
-            selected = activeField == MoneyFieldTarget.Amount,
-            onClick = { onFieldSelected(MoneyFieldTarget.Amount) }
+            onValueChange = onAmountChange
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MoneyInputTile(
+            MoneyField(
                 label = "Taxable allowances",
                 value = allowancesText,
-                selected = activeField == MoneyFieldTarget.Allowances,
-                onClick = { onFieldSelected(MoneyFieldTarget.Allowances) },
+                onValueChange = onAllowancesChange,
                 modifier = Modifier.weight(1f)
             )
-            MoneyInputTile(
+            MoneyField(
                 label = "Other deductions",
                 value = deductionsText,
-                selected = activeField == MoneyFieldTarget.Deductions,
-                onClick = { onFieldSelected(MoneyFieldTarget.Deductions) },
+                onValueChange = onDeductionsChange,
                 modifier = Modifier.weight(1f)
             )
         }
-        MoneyInputTile(
+        MoneyField(
             label = "Non-taxable reimbursements",
             value = reimbursementsText,
-            selected = activeField == MoneyFieldTarget.Reimbursements,
-            onClick = { onFieldSelected(MoneyFieldTarget.Reimbursements) }
+            onValueChange = onReimbursementsChange
         )
     }
 }
@@ -410,90 +392,20 @@ private fun SectionCard(
 }
 
 @Composable
-private fun MoneyInputTile(
+private fun MoneyField(
     label: String,
     value: String,
-    selected: Boolean,
-    onClick: () -> Unit,
+    onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) Mint else Color(0xFFF8FAF9)
-        ),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 3.dp else 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Text(label, color = Muted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            Text(
-                text = value.formatInputMoney(),
-                color = if (selected) ForestDark else Ink,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 21.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun PinKeypad(activeField: MoneyFieldTarget, onKey: (String) -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = activeField.keypadLabel(),
-                color = Forest,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-            listOf(
-                listOf("1", "2", "3"),
-                listOf("4", "5", "6"),
-                listOf("7", "8", "9"),
-                listOf("Clear", "0", "Del")
-            ).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { key ->
-                        KeypadButton(
-                            text = key,
-                            onClick = { onKey(key) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun KeypadButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.height(42.dp),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Text(
-            text = text,
-            color = if (text == "Clear") Muted else ForestDark,
-            fontWeight = FontWeight.Bold,
-            fontSize = if (text.length > 1) 12.sp else 17.sp
-        )
-    }
+    OutlinedTextField(
+        value = value.formatInputMoney(),
+        onValueChange = { onValueChange(it.digitsOnly()) },
+        modifier = modifier.fillMaxWidth(),
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+    )
 }
 
 @Composable
@@ -644,24 +556,6 @@ private fun String.formatInputMoney(): String {
 
 private fun String.digitsOnly(): String {
     return filter { it.isDigit() }.trimStart('0').ifBlank { "0" }
-}
-
-private fun updateMoneyDigits(current: String, key: String): String {
-    val digits = current.digitsOnly()
-    return when (key) {
-        "Clear" -> "0"
-        "Del" -> digits.dropLast(1).ifBlank { "0" }
-        else -> (digits + key).trimStart('0').ifBlank { "0" }
-    }
-}
-
-private fun MoneyFieldTarget.keypadLabel(): String {
-    return when (this) {
-        MoneyFieldTarget.Amount -> "Entering main amount"
-        MoneyFieldTarget.Allowances -> "Entering taxable allowances"
-        MoneyFieldTarget.Reimbursements -> "Entering non-taxable reimbursements"
-        MoneyFieldTarget.Deductions -> "Entering other deductions"
-    }
 }
 
 private fun Double.formatPercent(): String {
