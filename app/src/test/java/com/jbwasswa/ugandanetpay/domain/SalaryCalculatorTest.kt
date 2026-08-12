@@ -49,6 +49,7 @@ class SalaryCalculatorTest {
 
         assertEquals(1_200_000, result.taxableIncome)
         assertEquals(1_200_000, result.cashEarnings)
+        assertEquals(1_200_000, result.nssfContributionBase)
     }
 
     @Test
@@ -63,5 +64,28 @@ class SalaryCalculatorTest {
 
         assertEquals(1_000_000, result.taxableIncome)
         assertEquals(1_200_000, result.cashEarnings)
+        assertEquals(1_000_000, result.nssfContributionBase)
+    }
+
+    @Test
+    fun sameTaxableCashEarningsProduceSameNet() {
+        val withAllowance = calculator.calculateGrossToNet(
+            SalaryInput(
+                grossPay = 14_712_727.0,
+                taxableAllowances = 2_000_000.0,
+                includeNssf = true
+            )
+        )
+        val allInGross = calculator.calculateGrossToNet(
+            SalaryInput(
+                grossPay = 16_712_727.0,
+                taxableAllowances = 0.0,
+                includeNssf = true
+            )
+        )
+
+        assertEquals(allInGross.paye, withAllowance.paye)
+        assertEquals(allInGross.employeeNssf, withAllowance.employeeNssf)
+        assertEquals(allInGross.netPay, withAllowance.netPay)
     }
 }

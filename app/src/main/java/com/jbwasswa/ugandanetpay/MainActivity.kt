@@ -366,6 +366,7 @@ private fun Breakdown(result: SalaryResult) {
             BreakdownRow("Non-taxable reimbursements", result.nonTaxableReimbursements.formatUgx())
             BreakdownRow("Cash earnings", result.cashEarnings.formatUgx())
             BreakdownRow("Taxable income", result.taxableIncome.formatUgx())
+            BreakdownRow("NSSF contribution base", result.nssfContributionBase.formatUgx())
             BreakdownRow("PAYE", result.paye.formatUgx())
             BreakdownRow("Employee NSSF", result.employeeNssf.formatUgx())
             BreakdownRow("Employer NSSF", result.employerNssf.formatUgx())

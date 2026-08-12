@@ -21,6 +21,7 @@ data class SalaryResult(
     val nonTaxableReimbursements: Long,
     val cashEarnings: Long,
     val taxableIncome: Long,
+    val nssfContributionBase: Long,
     val paye: Long,
     val employeeNssf: Long,
     val employerNssf: Long,
@@ -46,12 +47,13 @@ class SalaryCalculator {
         val nonTaxableReimbursements = max(0.0, input.nonTaxableReimbursements)
         val taxableIncome = max(0.0, gross + taxableAllowances)
         val cashEarnings = gross + taxableAllowances + nonTaxableReimbursements
+        val nssfContributionBase = taxableIncome
         val paye = calculatePaye(
             taxableIncome = taxableIncome,
             rules = PayeRuleBook.rulesFor(input.taxYear, input.residency)
         )
-        val employeeNssf = if (input.includeNssf) gross * input.nssfEmployeeRate else 0.0
-        val employerNssf = if (input.includeNssf) gross * input.nssfEmployerRate else 0.0
+        val employeeNssf = if (input.includeNssf) nssfContributionBase * input.nssfEmployeeRate else 0.0
+        val employerNssf = if (input.includeNssf) nssfContributionBase * input.nssfEmployerRate else 0.0
         val deductions = max(0.0, input.otherDeductions)
         val netPay = max(0.0, cashEarnings - paye - employeeNssf - deductions)
 
@@ -61,6 +63,7 @@ class SalaryCalculator {
             nonTaxableReimbursements = nonTaxableReimbursements.toWholeShillings(),
             cashEarnings = cashEarnings.toWholeShillings(),
             taxableIncome = taxableIncome.toWholeShillings(),
+            nssfContributionBase = nssfContributionBase.toWholeShillings(),
             paye = paye.toWholeShillings(),
             employeeNssf = employeeNssf.toWholeShillings(),
             employerNssf = employerNssf.toWholeShillings(),

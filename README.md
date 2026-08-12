@@ -25,6 +25,7 @@ The calculator treats taxable allowances as employment income:
 ```text
 PAYE income = basic/gross salary + taxable allowances
 cash earnings = basic/gross salary + taxable allowances + non-taxable reimbursements
+NSSF contribution base = basic/gross salary + taxable allowances
 net pay = cash earnings - PAYE - employee NSSF - other deductions
 ```
 
