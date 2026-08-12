@@ -52,3 +52,24 @@ Every push to `main` runs the **Build Debug APK** workflow.
 3. Open the latest **Build Debug APK** run.
 4. Download the artifact named **NetPayCalculator-debug-apk**.
 5. Unzip it and install `app-debug.apk` on your Android phone.
+
+If release signing secrets are configured, the workflow also uploads **NetPayCalculator-release-apk**. That is the preferred APK for repeated installation as updates.
+
+## APK Updates
+
+Android installs a new APK over the old one only when:
+
+- `applicationId` stays the same: `com.jbwasswa.ugandanetpay`
+- the APK is signed with the same certificate as the installed APK
+- `versionCode` is higher than the installed APK
+
+This project keeps the package name stable and has release signing support through GitHub repository secrets:
+
+```text
+ANDROID_KEYSTORE_BASE64
+ANDROID_KEYSTORE_PASSWORD
+ANDROID_KEY_ALIAS
+ANDROID_KEY_PASSWORD
+```
+
+If you already installed an earlier debug APK signed with a temporary debug key, you may need to uninstall once before installing the first properly signed release APK. After that, future signed release APKs should install as updates.
