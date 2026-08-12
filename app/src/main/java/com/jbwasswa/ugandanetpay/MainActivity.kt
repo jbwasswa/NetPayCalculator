@@ -22,7 +22,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
@@ -47,6 +46,13 @@ import com.jbwasswa.ugandanetpay.domain.SalaryResult
 import com.jbwasswa.ugandanetpay.domain.TaxYear
 import com.jbwasswa.ugandanetpay.domain.formatUgx
 
+private val Forest = Color(0xFF0F5B45)
+private val ForestDark = Color(0xFF0A3E32)
+private val Mint = Color(0xFFEAF6F0)
+private val Ink = Color(0xFF13251E)
+private val Muted = Color(0xFF5D6F67)
+private val SoftBlue = Color(0xFFEAF3FB)
+
 private enum class CalculatorMode {
     GrossToNet,
     NetToGross
@@ -67,12 +73,12 @@ class MainActivity : ComponentActivity() {
 private fun UgandaNetPayTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = Color(0xFF0F5B45),
+            primary = Forest,
             secondary = Color(0xFF1F6FA8),
-            background = Color(0xFFF3F7F4),
+            background = Color(0xFFF5F8F6),
             surface = Color.White,
             onPrimary = Color.White,
-            onSurface = Color(0xFF13251E)
+            onSurface = Ink
         ),
         content = content
     )
@@ -118,12 +124,11 @@ private fun NetPayCalculatorScreen() {
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Header()
-        ModeSelector(
-            selectedMode = selectedMode,
-            onSelected = { mode = it.name }
-        )
-        InputCard(
+        Header(selectedTaxYear, selectedResidency)
+        ModeSelector(selectedMode) { mode = it.name }
+        ResultHero(selectedMode, result, netToGross)
+        QuickStats(result)
+        IncomeCard(
             mode = selectedMode,
             amountText = amountText,
             onAmountChange = { amountText = it },
@@ -132,7 +137,9 @@ private fun NetPayCalculatorScreen() {
             reimbursementsText = reimbursementsText,
             onReimbursementsChange = { reimbursementsText = it },
             deductionsText = deductionsText,
-            onDeductionsChange = { deductionsText = it },
+            onDeductionsChange = { deductionsText = it }
+        )
+        PayrollSettingsCard(
             includeNssf = includeNssf,
             onIncludeNssfChange = { includeNssf = it },
             taxYear = selectedTaxYear,
@@ -140,15 +147,10 @@ private fun NetPayCalculatorScreen() {
             residency = selectedResidency,
             onResidencyChange = { residency = it.name }
         )
-        ResultHero(
-            mode = selectedMode,
-            result = result,
-            reverseResult = netToGross
-        )
-        Breakdown(result = result)
+        Breakdown(result)
         Text(
             text = "Estimate only. Confirm official payroll treatment with URA, your employer, or a tax adviser.",
-            color = Color(0xFF61736B),
+            color = Muted,
             fontSize = 12.sp,
             lineHeight = 16.sp
         )
@@ -156,18 +158,33 @@ private fun NetPayCalculatorScreen() {
 }
 
 @Composable
-private fun Header() {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+private fun Header(taxYear: TaxYear, residency: Residency) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Uganda Net Pay",
-            fontSize = 28.sp,
+            fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0F5B45)
+            color = ForestDark
         )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            InfoPill(taxYear.label)
+            InfoPill(if (residency == Residency.Resident) "Resident" else "Non-resident")
+        }
+    }
+}
+
+@Composable
+private fun InfoPill(text: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Mint),
+        shape = RoundedCornerShape(100.dp)
+    ) {
         Text(
-            text = "PAYE calculator for gross-to-net and net-to-gross salary planning.",
-            color = Color(0xFF52645D),
-            fontSize = 14.sp
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            color = ForestDark,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -177,42 +194,125 @@ private fun ModeSelector(
     selectedMode: CalculatorMode,
     onSelected: (CalculatorMode) -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ModeButton(
-            text = "I know Gross",
-            selected = selectedMode == CalculatorMode.GrossToNet,
-            onClick = { onSelected(CalculatorMode.GrossToNet) },
-            modifier = Modifier.weight(1f)
-        )
-        ModeButton(
-            text = "I know Net",
-            selected = selectedMode == CalculatorMode.NetToGross,
-            onClick = { onSelected(CalculatorMode.NetToGross) },
-            modifier = Modifier.weight(1f)
-        )
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            SegmentButton(
+                text = "Gross to Net",
+                selected = selectedMode == CalculatorMode.GrossToNet,
+                onClick = { onSelected(CalculatorMode.GrossToNet) },
+                modifier = Modifier.weight(1f)
+            )
+            SegmentButton(
+                text = "Net to Gross",
+                selected = selectedMode == CalculatorMode.NetToGross,
+                onClick = { onSelected(CalculatorMode.NetToGross) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
 @Composable
-private fun ModeButton(
+private fun SegmentButton(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (selected) {
-        Button(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(8.dp)) {
-            Text(text)
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(text = text, fontWeight = FontWeight.Bold)
         }
     } else {
-        OutlinedButton(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(8.dp)) {
-            Text(text)
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(text = text, color = Muted, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 @Composable
-private fun InputCard(
+private fun ResultHero(
+    mode: CalculatorMode,
+    result: SalaryResult,
+    reverseResult: GrossFromNetResult
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Forest),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = if (mode == CalculatorMode.GrossToNet) "Estimated take-home pay" else "Gross salary required",
+                color = Color(0xFFCFEADF),
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = if (mode == CalculatorMode.GrossToNet) {
+                    result.netPay.formatUgx()
+                } else {
+                    reverseResult.requiredGrossPay.formatUgx()
+                },
+                color = Color.White,
+                fontSize = 31.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 36.sp
+            )
+            Text(
+                text = if (mode == CalculatorMode.GrossToNet) {
+                    "From ${result.cashEarnings.formatUgx()} cash earnings"
+                } else {
+                    "To land at ${reverseResult.targetNetPay.formatUgx()} net pay"
+                },
+                color = Color(0xFFCFEADF),
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickStats(result: SalaryResult) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        StatCard("PAYE", result.paye.formatUgx(), Modifier.weight(1f))
+        StatCard("NSSF", result.employeeNssf.formatUgx(), Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = SoftBlue),
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, color = Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(value, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun IncomeCard(
     mode: CalculatorMode,
     amountText: String,
     onAmountChange: (String) -> Unit,
@@ -221,7 +321,22 @@ private fun InputCard(
     reimbursementsText: String,
     onReimbursementsChange: (String) -> Unit,
     deductionsText: String,
-    onDeductionsChange: (String) -> Unit,
+    onDeductionsChange: (String) -> Unit
+) {
+    SectionCard(title = "Income details", subtitle = "Separate taxable allowances from reimbursements.") {
+        MoneyField(
+            label = if (mode == CalculatorMode.GrossToNet) "Basic / gross salary" else "Desired take-home pay",
+            value = amountText,
+            onValueChange = onAmountChange
+        )
+        MoneyField("Taxable allowances", allowancesText, onAllowancesChange)
+        MoneyField("Non-taxable reimbursements", reimbursementsText, onReimbursementsChange)
+        MoneyField("Other deductions", deductionsText, onDeductionsChange)
+    }
+}
+
+@Composable
+private fun PayrollSettingsCard(
     includeNssf: Boolean,
     onIncludeNssfChange: (Boolean) -> Unit,
     taxYear: TaxYear,
@@ -229,44 +344,55 @@ private fun InputCard(
     residency: Residency,
     onResidencyChange: (Residency) -> Unit
 ) {
+    SectionCard(title = "Payroll settings", subtitle = "Rules used for this estimate.") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Deduct employee NSSF", fontWeight = FontWeight.SemiBold, color = Ink)
+                Text("5% of taxable/contributable wage", color = Muted, fontSize = 12.sp)
+            }
+            Switch(checked = includeNssf, onCheckedChange = onIncludeNssfChange)
+        }
+        ChoiceRow(
+            title = "PAYE rules",
+            firstText = TaxYear.Fy2026_27.label,
+            firstSelected = taxYear == TaxYear.Fy2026_27,
+            onFirst = { onTaxYearChange(TaxYear.Fy2026_27) },
+            secondText = TaxYear.Fy2025_26.label,
+            secondSelected = taxYear == TaxYear.Fy2025_26,
+            onSecond = { onTaxYearChange(TaxYear.Fy2025_26) }
+        )
+        ChoiceRow(
+            title = "Tax residency",
+            firstText = "Resident",
+            firstSelected = residency == Residency.Resident,
+            onFirst = { onResidencyChange(Residency.Resident) },
+            secondText = "Non-resident",
+            secondSelected = residency == Residency.NonResident,
+            onSecond = { onResidencyChange(Residency.NonResident) }
+        )
+    }
+}
+
+@Composable
+private fun SectionCard(
+    title: String,
+    subtitle: String,
+    content: @Composable Column.() -> Unit
+) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            MoneyField(
-                label = if (mode == CalculatorMode.GrossToNet) "Gross monthly salary" else "Desired monthly net pay",
-                value = amountText,
-                onValueChange = onAmountChange
-            )
-            MoneyField("Taxable allowances", allowancesText, onAllowancesChange)
-            MoneyField("Non-taxable reimbursements", reimbursementsText, onReimbursementsChange)
-            MoneyField("Other deductions", deductionsText, onDeductionsChange)
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Deduct employee NSSF", modifier = Modifier.weight(1f))
-                Switch(checked = includeNssf, onCheckedChange = onIncludeNssfChange)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(subtitle, color = Muted, fontSize = 12.sp)
             }
-
-            OptionGroup(
-                title = "PAYE rules",
-                options = TaxYear.entries.toList(),
-                selected = taxYear,
-                label = { it.label },
-                onSelected = onTaxYearChange
-            )
-
-            OptionGroup(
-                title = "Residency",
-                options = Residency.entries.toList(),
-                selected = residency,
-                label = { if (it == Residency.Resident) "Resident" else "Non-resident" },
-                onSelected = onResidencyChange
-            )
+            content()
         }
     }
 }
@@ -282,98 +408,106 @@ private fun MoneyField(
         onValueChange = { onValueChange(it.filter { char -> char.isDigit() || char == ',' || char == '.' }) },
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label) },
+        prefix = { Text("UGX") },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
 }
 
 @Composable
-private fun <T> OptionGroup(
+private fun ChoiceRow(
     title: String,
-    options: List<T>,
-    selected: T,
-    label: (T) -> String,
-    onSelected: (T) -> Unit
+    firstText: String,
+    firstSelected: Boolean,
+    onFirst: () -> Unit,
+    secondText: String,
+    secondSelected: Boolean,
+    onSecond: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, fontWeight = FontWeight.SemiBold, color = Color(0xFF31443C))
-        options.forEach { option ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                RadioButton(
-                    selected = selected == option,
-                    onClick = { onSelected(option) }
-                )
-                Text(label(option))
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, fontWeight = FontWeight.SemiBold, color = Ink)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OptionButton(firstText, firstSelected, onFirst, Modifier.weight(1f))
+            OptionButton(secondText, secondSelected, onSecond, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun ResultHero(
-    mode: CalculatorMode,
-    result: SalaryResult,
-    reverseResult: GrossFromNetResult
+private fun OptionButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F5B45)),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Text(
-                text = if (mode == CalculatorMode.GrossToNet) "Estimated Net Pay" else "Required Gross Pay",
-                color = Color(0xFFCFEADF),
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = if (mode == CalculatorMode.GrossToNet) {
-                    result.netPay.formatUgx()
-                } else {
-                    reverseResult.requiredGrossPay.formatUgx()
-                },
-                color = Color.White,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "${result.taxYear.label} - ${if (result.residency == Residency.Resident) "Resident" else "Non-resident"}",
-                color = Color(0xFFCFEADF),
-                fontSize = 13.sp
-            )
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(text = text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(text = text, color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
 
 @Composable
 private fun Breakdown(result: SalaryResult) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text("Breakdown", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            BreakdownRow("Basic / gross salary", result.grossPay.formatUgx())
-            BreakdownRow("Taxable allowances", result.taxableAllowances.formatUgx())
-            BreakdownRow("Non-taxable reimbursements", result.nonTaxableReimbursements.formatUgx())
-            BreakdownRow("Cash earnings", result.cashEarnings.formatUgx())
-            BreakdownRow("Taxable income", result.taxableIncome.formatUgx())
-            BreakdownRow("NSSF contribution base", result.nssfContributionBase.formatUgx())
-            BreakdownRow("PAYE", result.paye.formatUgx())
-            BreakdownRow("Employee NSSF", result.employeeNssf.formatUgx())
-            BreakdownRow("Employer NSSF", result.employerNssf.formatUgx())
-            BreakdownRow("Other deductions", result.otherDeductions.formatUgx())
-            BreakdownRow("Net pay", result.netPay.formatUgx(), strong = true)
-            BreakdownRow("Effective tax rate", "${(result.effectiveTaxRate * 100).formatPercent()}%")
-            BreakdownRow("Take-home rate", "${(result.takeHomeRate * 100).formatPercent()}%")
+    SectionCard(title = "Calculation breakdown", subtitle = "How the take-home figure is derived.") {
+        BreakdownGroup(
+            title = "Income",
+            rows = listOf(
+                "Basic / gross salary" to result.grossPay.formatUgx(),
+                "Taxable allowances" to result.taxableAllowances.formatUgx(),
+                "Non-taxable reimbursements" to result.nonTaxableReimbursements.formatUgx(),
+                "Cash earnings" to result.cashEarnings.formatUgx()
+            )
+        )
+        BreakdownGroup(
+            title = "Tax and deductions",
+            rows = listOf(
+                "Taxable income" to result.taxableIncome.formatUgx(),
+                "NSSF contribution base" to result.nssfContributionBase.formatUgx(),
+                "PAYE" to result.paye.formatUgx(),
+                "Employee NSSF" to result.employeeNssf.formatUgx(),
+                "Other deductions" to result.otherDeductions.formatUgx()
+            )
+        )
+        BreakdownGroup(
+            title = "Final",
+            rows = listOf(
+                "Net pay" to result.netPay.formatUgx(),
+                "Employer NSSF" to result.employerNssf.formatUgx(),
+                "Effective PAYE rate" to "${(result.effectiveTaxRate * 100).formatPercent()}%",
+                "Take-home rate" to "${(result.takeHomeRate * 100).formatPercent()}%"
+            ),
+            strongLast = false
+        )
+    }
+}
+
+@Composable
+private fun BreakdownGroup(
+    title: String,
+    rows: List<Pair<String, String>>,
+    strongLast: Boolean = true
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, color = Forest, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        rows.forEachIndexed { index, row ->
+            BreakdownRow(
+                label = row.first,
+                value = row.second,
+                strong = strongLast && index == rows.lastIndex
+            )
         }
     }
 }
@@ -384,11 +518,12 @@ private fun BreakdownRow(label: String, value: String, strong: Boolean = false) 
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = Color(0xFF52645D))
+        Text(label, color = Muted, fontSize = 13.sp)
         Text(
             value,
             fontWeight = if (strong) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (strong) Color(0xFF0F5B45) else Color(0xFF13251E)
+            color = if (strong) Forest else Ink,
+            fontSize = 13.sp
         )
     }
 }
