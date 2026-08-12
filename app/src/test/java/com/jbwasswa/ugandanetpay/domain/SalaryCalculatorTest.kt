@@ -36,4 +36,32 @@ class SalaryCalculatorTest {
 
         assertEquals(target, result.salaryResult.netPay.toDouble(), 2.0)
     }
+
+    @Test
+    fun taxableAllowancesIncreaseTaxableIncomeAndCashEarnings() {
+        val result = calculator.calculateGrossToNet(
+            SalaryInput(
+                grossPay = 1_000_000.0,
+                taxableAllowances = 200_000.0,
+                includeNssf = false
+            )
+        )
+
+        assertEquals(1_200_000, result.taxableIncome)
+        assertEquals(1_200_000, result.cashEarnings)
+    }
+
+    @Test
+    fun nonTaxableReimbursementsIncreaseCashButNotPayeIncome() {
+        val result = calculator.calculateGrossToNet(
+            SalaryInput(
+                grossPay = 1_000_000.0,
+                nonTaxableReimbursements = 200_000.0,
+                includeNssf = false
+            )
+        )
+
+        assertEquals(1_000_000, result.taxableIncome)
+        assertEquals(1_200_000, result.cashEarnings)
+    }
 }

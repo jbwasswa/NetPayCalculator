@@ -84,6 +84,7 @@ private fun NetPayCalculatorScreen() {
     var mode by rememberSaveable { mutableStateOf(CalculatorMode.GrossToNet.name) }
     var amountText by rememberSaveable { mutableStateOf("2000000") }
     var allowancesText by rememberSaveable { mutableStateOf("0") }
+    var reimbursementsText by rememberSaveable { mutableStateOf("0") }
     var deductionsText by rememberSaveable { mutableStateOf("0") }
     var includeNssf by rememberSaveable { mutableStateOf(true) }
     var taxYear by rememberSaveable { mutableStateOf(TaxYear.Fy2026_27.name) }
@@ -94,10 +95,12 @@ private fun NetPayCalculatorScreen() {
     val selectedResidency = Residency.valueOf(residency)
     val amount = amountText.moneyValue()
     val allowances = allowancesText.moneyValue()
+    val reimbursements = reimbursementsText.moneyValue()
     val deductions = deductionsText.moneyValue()
     val template = SalaryInput(
         grossPay = if (selectedMode == CalculatorMode.GrossToNet) amount else 0.0,
         taxableAllowances = allowances,
+        nonTaxableReimbursements = reimbursements,
         otherDeductions = deductions,
         includeNssf = includeNssf,
         taxYear = selectedTaxYear,
@@ -126,6 +129,8 @@ private fun NetPayCalculatorScreen() {
             onAmountChange = { amountText = it },
             allowancesText = allowancesText,
             onAllowancesChange = { allowancesText = it },
+            reimbursementsText = reimbursementsText,
+            onReimbursementsChange = { reimbursementsText = it },
             deductionsText = deductionsText,
             onDeductionsChange = { deductionsText = it },
             includeNssf = includeNssf,
@@ -213,6 +218,8 @@ private fun InputCard(
     onAmountChange: (String) -> Unit,
     allowancesText: String,
     onAllowancesChange: (String) -> Unit,
+    reimbursementsText: String,
+    onReimbursementsChange: (String) -> Unit,
     deductionsText: String,
     onDeductionsChange: (String) -> Unit,
     includeNssf: Boolean,
@@ -237,6 +244,7 @@ private fun InputCard(
                 onValueChange = onAmountChange
             )
             MoneyField("Taxable allowances", allowancesText, onAllowancesChange)
+            MoneyField("Non-taxable reimbursements", reimbursementsText, onReimbursementsChange)
             MoneyField("Other deductions", deductionsText, onDeductionsChange)
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -353,7 +361,10 @@ private fun Breakdown(result: SalaryResult) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Breakdown", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            BreakdownRow("Gross pay", result.grossPay.formatUgx())
+            BreakdownRow("Basic / gross salary", result.grossPay.formatUgx())
+            BreakdownRow("Taxable allowances", result.taxableAllowances.formatUgx())
+            BreakdownRow("Non-taxable reimbursements", result.nonTaxableReimbursements.formatUgx())
+            BreakdownRow("Cash earnings", result.cashEarnings.formatUgx())
             BreakdownRow("Taxable income", result.taxableIncome.formatUgx())
             BreakdownRow("PAYE", result.paye.formatUgx())
             BreakdownRow("Employee NSSF", result.employeeNssf.formatUgx())
@@ -388,4 +399,3 @@ private fun String.moneyValue(): Double {
 private fun Double.formatPercent(): String {
     return String.format("%.1f", this)
 }
-

@@ -6,6 +6,7 @@ import kotlin.math.max
 data class SalaryInput(
     val grossPay: Double,
     val taxableAllowances: Double = 0.0,
+    val nonTaxableReimbursements: Double = 0.0,
     val otherDeductions: Double = 0.0,
     val includeNssf: Boolean = true,
     val nssfEmployeeRate: Double = 0.05,
@@ -16,6 +17,9 @@ data class SalaryInput(
 
 data class SalaryResult(
     val grossPay: Long,
+    val taxableAllowances: Long,
+    val nonTaxableReimbursements: Long,
+    val cashEarnings: Long,
     val taxableIncome: Long,
     val paye: Long,
     val employeeNssf: Long,
@@ -38,7 +42,10 @@ data class GrossFromNetResult(
 class SalaryCalculator {
     fun calculateGrossToNet(input: SalaryInput): SalaryResult {
         val gross = max(0.0, input.grossPay)
-        val taxableIncome = max(0.0, gross + input.taxableAllowances)
+        val taxableAllowances = max(0.0, input.taxableAllowances)
+        val nonTaxableReimbursements = max(0.0, input.nonTaxableReimbursements)
+        val taxableIncome = max(0.0, gross + taxableAllowances)
+        val cashEarnings = gross + taxableAllowances + nonTaxableReimbursements
         val paye = calculatePaye(
             taxableIncome = taxableIncome,
             rules = PayeRuleBook.rulesFor(input.taxYear, input.residency)
@@ -46,10 +53,13 @@ class SalaryCalculator {
         val employeeNssf = if (input.includeNssf) gross * input.nssfEmployeeRate else 0.0
         val employerNssf = if (input.includeNssf) gross * input.nssfEmployerRate else 0.0
         val deductions = max(0.0, input.otherDeductions)
-        val netPay = max(0.0, gross - paye - employeeNssf - deductions)
+        val netPay = max(0.0, cashEarnings - paye - employeeNssf - deductions)
 
         return SalaryResult(
             grossPay = gross.toWholeShillings(),
+            taxableAllowances = taxableAllowances.toWholeShillings(),
+            nonTaxableReimbursements = nonTaxableReimbursements.toWholeShillings(),
+            cashEarnings = cashEarnings.toWholeShillings(),
             taxableIncome = taxableIncome.toWholeShillings(),
             paye = paye.toWholeShillings(),
             employeeNssf = employeeNssf.toWholeShillings(),
@@ -120,4 +130,3 @@ class SalaryCalculator {
         return max(0.0, standardTax + extraTax)
     }
 }
-

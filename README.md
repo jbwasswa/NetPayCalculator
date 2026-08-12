@@ -7,6 +7,7 @@ Android salary calculator for Ugandan PAYE, including gross-to-net and net-to-gr
 - Native Android app scaffolded with Kotlin and Jetpack Compose.
 - PAYE rules are versioned by tax year.
 - Supports resident and non-resident calculations.
+- Separates taxable allowances from non-taxable reimbursements.
 - Supports employee NSSF deduction and employer NSSF display.
 - Supports reverse calculation from desired net pay to required gross pay.
 - Includes focused unit tests for the calculator engine.
@@ -16,6 +17,18 @@ Android salary calculator for Ugandan PAYE, including gross-to-net and net-to-gr
 - FY 2025/26 resident structure using the old UGX 235,000 nil threshold.
 - FY 2026/27 resident structure using the new UGX 335,000 nil threshold.
 - Non-resident structures are modeled separately and should be reviewed against the final official payroll guidance before release.
+
+## Allowance Treatment
+
+The calculator treats taxable allowances as employment income:
+
+```text
+PAYE income = basic/gross salary + taxable allowances
+cash earnings = basic/gross salary + taxable allowances + non-taxable reimbursements
+net pay = cash earnings - PAYE - employee NSSF - other deductions
+```
+
+Non-taxable reimbursements are included in cash paid to the employee but excluded from PAYE income.
 
 ## Build Notes
 
