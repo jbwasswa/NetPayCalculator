@@ -398,14 +398,22 @@ private fun MoneyField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
-        value = value.formatInputMoney(),
-        onValueChange = { onValueChange(it.digitsOnly()) },
-        modifier = modifier.fillMaxWidth(),
-        label = { Text(label) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-    )
+    Column(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = { onValueChange(it.digitsOnly()) },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(label) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+        Text(
+            text = value.formatInputMoney(),
+            color = MutedText,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(start = 4.dp, top = 3.dp)
+        )
+    }
 }
 
 @Composable
@@ -546,16 +554,16 @@ private fun BreakdownRow(label: String, value: String, strong: Boolean = false) 
 }
 
 private fun String.moneyValue(): Double {
-    return replace(",", "").toDoubleOrNull() ?: 0.0
+    return filter { it.isDigit() }.toDoubleOrNull() ?: 0.0
 }
 
 private fun String.formatInputMoney(): String {
-    val number = digitsOnly().toLongOrNull() ?: 0L
+    val number = filter { it.isDigit() }.toLongOrNull() ?: 0L
     return number.formatUgx()
 }
 
 private fun String.digitsOnly(): String {
-    return filter { it.isDigit() }.trimStart('0').ifBlank { "0" }
+    return filter { it.isDigit() }.trimStart('0')
 }
 
 private fun Double.formatPercent(): String {
