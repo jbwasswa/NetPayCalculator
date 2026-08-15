@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -363,28 +364,31 @@ private fun PayrollSettingsCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Deduct Employee NSSF", fontWeight = FontWeight.SemiBold, color = Ink)
-                Text("5% of Taxable/Contributable Wage", color = Muted, fontSize = 12.sp)
             }
             Switch(checked = includeNssf, onCheckedChange = onIncludeNssfChange)
         }
-        ChoiceRow(
-            title = "PAYE Rules",
-            firstText = TaxYear.Fy2026_27.label,
-            firstSelected = taxYear == TaxYear.Fy2026_27,
-            onFirst = { onTaxYearChange(TaxYear.Fy2026_27) },
-            secondText = TaxYear.Fy2025_26.label,
-            secondSelected = taxYear == TaxYear.Fy2025_26,
-            onSecond = { onTaxYearChange(TaxYear.Fy2025_26) }
-        )
-        ChoiceRow(
-            title = "Tax Residency",
-            firstText = "Resident",
-            firstSelected = residency == Residency.Resident,
-            onFirst = { onResidencyChange(Residency.Resident) },
-            secondText = "Non-Resident",
-            secondSelected = residency == Residency.NonResident,
-            onSecond = { onResidencyChange(Residency.NonResident) }
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            CompactChoiceRow(
+                title = "PAYE Rules",
+                firstText = TaxYear.Fy2026_27.label,
+                firstSelected = taxYear == TaxYear.Fy2026_27,
+                onFirst = { onTaxYearChange(TaxYear.Fy2026_27) },
+                secondText = TaxYear.Fy2025_26.label,
+                secondSelected = taxYear == TaxYear.Fy2025_26,
+                onSecond = { onTaxYearChange(TaxYear.Fy2025_26) },
+                modifier = Modifier.weight(1f)
+            )
+            CompactChoiceRow(
+                title = "Tax Residency",
+                firstText = "Resident",
+                firstSelected = residency == Residency.Resident,
+                onFirst = { onResidencyChange(Residency.Resident) },
+                secondText = "Non-Resident",
+                secondSelected = residency == Residency.NonResident,
+                onSecond = { onResidencyChange(Residency.NonResident) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
@@ -481,6 +485,71 @@ private fun ChoiceRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OptionButton(firstText, firstSelected, onFirst, Modifier.weight(1f))
             OptionButton(secondText, secondSelected, onSecond, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun CompactChoiceRow(
+    title: String,
+    firstText: String,
+    firstSelected: Boolean,
+    onFirst: () -> Unit,
+    secondText: String,
+    secondSelected: Boolean,
+    onSecond: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(title, fontWeight = FontWeight.SemiBold, color = Ink, fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            CompactOptionButton(firstText, firstSelected, onFirst, Modifier.weight(1f))
+            CompactOptionButton(secondText, secondSelected, onSecond, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun CompactOptionButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val contentPadding = PaddingValues(horizontal = 4.dp, vertical = 7.dp)
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = contentPadding
+        ) {
+            Text(
+                text = text,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = contentPadding
+        ) {
+            Text(
+                text = text,
+                color = Muted,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
