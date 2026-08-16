@@ -26,6 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -289,14 +290,21 @@ private fun Header(
             }
             DropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onDismissRequest = { expanded = false },
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 AppThemeOption.values().forEach { option ->
+                    val isSelected = option == selectedTheme
                     DropdownMenuItem(
                         text = {
                             Text(
                                 text = option.label,
-                                fontWeight = if (option == selectedTheme) {
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                                fontWeight = if (isSelected) {
                                     FontWeight.Bold
                                 } else {
                                     FontWeight.Medium
@@ -306,7 +314,10 @@ private fun Header(
                         onClick = {
                             onThemeSelected(option)
                             expanded = false
-                        }
+                        },
+                        colors = MenuDefaults.itemColors(
+                            textColor = MaterialTheme.colorScheme.onSurface
+                        )
                     )
                 }
             }
