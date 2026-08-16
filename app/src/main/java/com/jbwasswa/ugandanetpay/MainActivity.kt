@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,6 +24,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -55,12 +58,73 @@ import com.jbwasswa.ugandanetpay.domain.SalaryResult
 import com.jbwasswa.ugandanetpay.domain.TaxYear
 import com.jbwasswa.ugandanetpay.domain.formatUgx
 
-private val Forest = Color(0xFF0F5B45)
-private val ForestDark = Color(0xFF0A3E32)
-private val Mint = Color(0xFFEAF6F0)
-private val Ink = Color(0xFF13251E)
-private val Muted = Color(0xFF5D6F67)
-private val SoftBlue = Color(0xFFEAF3FB)
+private enum class AppThemeOption(
+    val label: String,
+    val primary: Color,
+    val primaryDark: Color,
+    val secondary: Color,
+    val background: Color,
+    val surface: Color,
+    val ink: Color,
+    val muted: Color,
+    val soft: Color
+) {
+    Forest(
+        label = "Forest",
+        primary = Color(0xFF0F5B45),
+        primaryDark = Color(0xFF0A3E32),
+        secondary = Color(0xFF1F6FA8),
+        background = Color(0xFFF5F8F6),
+        surface = Color.White,
+        ink = Color(0xFF13251E),
+        muted = Color(0xFF5D6F67),
+        soft = Color(0xFFEAF6F0)
+    ),
+    Oxford(
+        label = "Oxford",
+        primary = Color(0xFF233A8B),
+        primaryDark = Color(0xFF16245B),
+        secondary = Color(0xFF4461B5),
+        background = Color(0xFFF5F7FF),
+        surface = Color.White,
+        ink = Color(0xFF172033),
+        muted = Color(0xFF667085),
+        soft = Color(0xFFEAF0FF)
+    ),
+    Berry(
+        label = "Berry",
+        primary = Color(0xFFB0005A),
+        primaryDark = Color(0xFF6F0038),
+        secondary = Color(0xFF7C3AED),
+        background = Color(0xFFFFF5FA),
+        surface = Color.White,
+        ink = Color(0xFF2B1722),
+        muted = Color(0xFF7A6070),
+        soft = Color(0xFFFFE6F2)
+    ),
+    Slate(
+        label = "Slate",
+        primary = Color(0xFF40566E),
+        primaryDark = Color(0xFF263544),
+        secondary = Color(0xFF607D8B),
+        background = Color(0xFFF4F7FA),
+        surface = Color.White,
+        ink = Color(0xFF1D2733),
+        muted = Color(0xFF627386),
+        soft = Color(0xFFE8EEF4)
+    ),
+    Dark(
+        label = "Dark",
+        primary = Color(0xFF20C997),
+        primaryDark = Color(0xFF0E7A5F),
+        secondary = Color(0xFF7DD3FC),
+        background = Color(0xFF081711),
+        surface = Color(0xFF10231C),
+        ink = Color(0xFFF0FFF8),
+        muted = Color(0xFFB5CFC4),
+        soft = Color(0xFF17382D)
+    )
+}
 
 private enum class CalculatorMode {
     GrossToNet,
@@ -71,30 +135,46 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            UgandaNetPayTheme {
-                NetPayCalculatorScreen()
+            var selectedThemeName by rememberSaveable { mutableStateOf(AppThemeOption.Forest.name) }
+            val selectedTheme = AppThemeOption.valueOf(selectedThemeName)
+
+            UgandaNetPayTheme(selectedTheme) {
+                NetPayCalculatorScreen(
+                    selectedTheme = selectedTheme,
+                    onThemeSelected = { selectedThemeName = it.name }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun UgandaNetPayTheme(content: @Composable () -> Unit) {
+private fun UgandaNetPayTheme(
+    appTheme: AppThemeOption,
+    content: @Composable () -> Unit
+) {
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = Forest,
-            secondary = Color(0xFF1F6FA8),
-            background = Color(0xFFF5F8F6),
-            surface = Color.White,
+            primary = appTheme.primary,
+            secondary = appTheme.secondary,
+            primaryContainer = appTheme.primaryDark,
+            background = appTheme.background,
+            surface = appTheme.surface,
+            secondaryContainer = appTheme.soft,
             onPrimary = Color.White,
-            onSurface = Ink
+            onSecondaryContainer = appTheme.ink,
+            onSurface = appTheme.ink,
+            onSurfaceVariant = appTheme.muted
         ),
         content = content
     )
 }
 
 @Composable
-private fun NetPayCalculatorScreen() {
+private fun NetPayCalculatorScreen(
+    selectedTheme: AppThemeOption,
+    onThemeSelected: (AppThemeOption) -> Unit
+) {
     val calculator = remember { SalaryCalculator() }
     var mode by rememberSaveable { mutableStateOf(CalculatorMode.GrossToNet.name) }
     var amountText by rememberSaveable { mutableStateOf("") }
@@ -138,7 +218,10 @@ private fun NetPayCalculatorScreen() {
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Header()
+        Header(
+            selectedTheme = selectedTheme,
+            onThemeSelected = onThemeSelected
+        )
         if (showBreakdown) {
             BreakdownScreen(result = result, onBack = { showBreakdown = false })
         } else {
@@ -174,13 +257,61 @@ private fun NetPayCalculatorScreen() {
 }
 
 @Composable
-private fun Header() {
-    Text(
-        text = "Uganda Net Pay",
-        fontSize = 30.sp,
-        fontWeight = FontWeight.Bold,
-        color = ForestDark
-    )
+private fun Header(
+    selectedTheme: AppThemeOption,
+    onThemeSelected: (AppThemeOption) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Uganda Net Pay",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Box {
+            OutlinedButton(
+                onClick = { expanded = true },
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = selectedTheme.label,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                AppThemeOption.values().forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = option.label,
+                                fontWeight = if (option == selectedTheme) {
+                                    FontWeight.Bold
+                                } else {
+                                    FontWeight.Medium
+                                }
+                            )
+                        },
+                        onClick = {
+                            onThemeSelected(option)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -189,7 +320,7 @@ private fun ModeSelector(
     onSelected: (CalculatorMode) -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(10.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -234,7 +365,11 @@ private fun SegmentButton(
             modifier = modifier,
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(text = text, color = Muted, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = text,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
@@ -247,7 +382,7 @@ private fun ResultHero(
     onClick: () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Forest),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
         shape = RoundedCornerShape(14.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier
@@ -260,7 +395,7 @@ private fun ResultHero(
         ) {
             Text(
                 text = if (mode == CalculatorMode.GrossToNet) "Estimated Net Pay" else "Gross Salary Required",
-                color = Color(0xFFCFEADF),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
                 fontWeight = FontWeight.SemiBold
             )
             Text(
@@ -269,7 +404,7 @@ private fun ResultHero(
                 } else {
                     reverseResult.requiredGrossPay.formatUgx()
                 },
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 31.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 36.sp
@@ -280,12 +415,12 @@ private fun ResultHero(
                 } else {
                     "To Land At ${reverseResult.targetNetPay.formatUgx()} Net Pay"
                 },
-                color = Color(0xFFCFEADF),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
                 fontSize = 13.sp
             )
             Text(
                 text = "Tap To View Details",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -305,12 +440,22 @@ private fun QuickStats(result: SalaryResult) {
 private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = SoftBlue),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         shape = RoundedCornerShape(10.dp)
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(label, color = Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Text(value, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                label,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                value,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -363,7 +508,11 @@ private fun PayrollSettingsCard(
     SectionCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Deduct Employee NSSF", fontWeight = FontWeight.SemiBold, color = Ink)
+                Text(
+                    "Deduct Employee NSSF",
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
             Switch(checked = includeNssf, onCheckedChange = onIncludeNssfChange)
         }
@@ -397,7 +546,7 @@ private fun SectionCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -438,7 +587,7 @@ private fun MoneyField(
                 if (value.isNotBlank()) {
                     Text(
                         text = "X",
-                        color = Muted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
@@ -481,7 +630,7 @@ private fun ChoiceRow(
     onSecond: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, fontWeight = FontWeight.SemiBold, color = Ink)
+        Text(title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OptionButton(firstText, firstSelected, onFirst, Modifier.weight(1f))
             OptionButton(secondText, secondSelected, onSecond, Modifier.weight(1f))
@@ -504,7 +653,12 @@ private fun CompactChoiceRow(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(title, fontWeight = FontWeight.SemiBold, color = Ink, fontSize = 14.sp)
+        Text(
+            title,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 14.sp
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CompactOptionButton(firstText, firstSelected, onFirst, Modifier.weight(1f))
             CompactOptionButton(secondText, secondSelected, onSecond, Modifier.weight(1f))
@@ -544,7 +698,7 @@ private fun CompactOptionButton(
         ) {
             Text(
                 text = text,
-                color = Muted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -575,7 +729,12 @@ private fun OptionButton(
             modifier = modifier,
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(text = text, color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = text,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
@@ -587,7 +746,11 @@ private fun BreakdownScreen(result: SalaryResult, onBack: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
     ) {
-        Text("Back to calculator", color = Forest, fontWeight = FontWeight.Bold)
+        Text(
+            "Back to calculator",
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
     }
     SectionCard {
         BreakdownGroup(
@@ -630,7 +793,12 @@ private fun BreakdownGroup(
     strongLast: Boolean = true
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, color = Forest, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(
+            title,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
         rows.forEachIndexed { index, row ->
             BreakdownRow(
                 label = row.first,
@@ -647,11 +815,11 @@ private fun BreakdownRow(label: String, value: String, strong: Boolean = false) 
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = Muted, fontSize = 13.sp)
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
         Text(
             value,
             fontWeight = if (strong) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (strong) Forest else Ink,
+            color = if (strong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             fontSize = 13.sp
         )
     }
